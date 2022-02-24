@@ -8,11 +8,21 @@ import csv
 import settings
 import numpy as np
 from collections import OrderedDict
-from scipy.misc import imread
+#from matplotlib.pyplot import imread
+from imageio import imread
+
+#from scipy.misc import imread
+#from scipy.misc.pilutil import imread
 from multiprocessing import Pool, cpu_count
 from multiprocessing.pool import ThreadPool
 from scipy.ndimage.interpolation import zoom
 
+def except_stopiteration(func):
+    def inner_function(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except StopIteration:
+            print(f"We ignore the stop iteration")
 
 def load_csv(filename, readfields=None):
     def convert(value):
@@ -513,9 +523,11 @@ class SegmentationPrefetcher:
         '''Iterator for all batches'''
         while True:
             batch = self.fetch_batch()
+
             if batch is None:
-                raise StopIteration
-            yield batch
+                return
+            else:
+                yield batch
 
     def fetch_batch(self):
         '''Returns a single batch as an array of dictionaries.'''
@@ -541,8 +553,9 @@ class SegmentationPrefetcher:
             batch = self.fetch_tensor_batch(
                     bgr_mean=bgr_mean, global_labels=global_labels)
             if batch is None:
-                raise StopIteration
-            yield batch
+                return
+            else:
+                yield batch
 
     def form_caffe_tensors(self, batch, bgr_mean=None, global_labels=False):
         # Assemble a batch in [{'cat': data,..},..] format into

@@ -1,9 +1,11 @@
 ######### global settings  #########
-GPU = True                                  # running on GPU is highly suggested
+GPU = False                                  # running on GPU is highly suggeste
 TEST_MODE = False                           # turning on the testmode means the code will run on a small dataset.
 CLEAN = True                               # set to "True" if you want to clean the temporary large files after generating result
-MODEL = 'resnet18'                          # model arch: resnet18, alexnet, resnet50, densenet161
-DATASET = 'places365'                       # model trained on: places365 or imagenet
+MODEL = 'vgg16'                          # model arch: resnet18, alexnet, resnet50, densenet161
+#MODEL = 'resnet18'                          # model arch: resnet18, alexnet, resnet50, densenet161
+#DATASET = 'places365'                       # model trained on: places365 or imagenet
+DATASET = 'imagenet'                       # model trained on: places365 or imagenet
 QUANTILE = 0.005                            # the threshold used for activation
 SEG_THRESHOLD = 0.04                        # the threshold used for visualization
 SCORE_THRESHOLD = 0.04                      # the threshold used for IoU score (in HTML file)
@@ -54,10 +56,14 @@ elif MODEL == 'resnet50':
     if DATASET == 'places365':
         MODEL_FILE = 'zoo/whole_resnet50_places365_python36.pth.tar'
         MODEL_PARALLEL = False
+elif MODEL == 'vgg16':
+    MODEL_FILE = None
+    FEATURE_NAMES = ['conv3_3', 'conv5_3']
+    MODEL_PARALLEL = False
 
 if TEST_MODE:
     WORKERS = 1
-    BATCH_SIZE = 4
+    BATCH_SIZE = 1
     TALLY_BATCH_SIZE = 2
     TALLY_AHEAD = 1
     INDEX_FILE = 'index_sm.csv'

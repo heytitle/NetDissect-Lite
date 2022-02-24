@@ -1,7 +1,10 @@
 
 import os
 from torch.autograd import Variable as V
-from scipy.misc import imresize
+#from scipy.misc import imresize
+from skimage.transform import resize as imresize
+#from imageio import imresize
+
 import numpy as np
 import torch
 import settings
@@ -138,60 +141,67 @@ class FeatureOperator:
         count = start
         start_time = time.time()
         last_batch_time = start_time
-        for batch in pd.batches():
-            batch_time = time.time()
-            rate = (count - start) / (batch_time - start_time + 1e-15)
-            batch_rate = len(batch) / (batch_time - last_batch_time + 1e-15)
-            last_batch_time = batch_time
+        try:
+            for batch in pd.batches():
+                if batch is None:
+                    break
+                batch_time = time.time()
+                rate = (count - start) / (batch_time - start_time + 1e-15)
+                batch_rate = len(batch) / (batch_time - last_batch_time + 1e-15)
+                last_batch_time = batch_time
 
-            print('labelprobe image index %d, items per sec %.4f, %.4f' % (count, rate, batch_rate))
+                print('labelprobe image index %d, items per sec %.4f, %.4f' % (count, rate, batch_rate))
 
-            for concept_map in batch:
-                count += 1
-                img_index = concept_map['i']
-                scalars, pixels = [], []
-                for cat in data.category_names():
-                    label_group = concept_map[cat]
-                    shape = np.shape(label_group)
-                    if len(shape) % 2 == 0:
-                        label_group = [label_group]
-                    if len(shape) < 2:
-                        scalars += label_group
-                    else:
-                        pixels.append(label_group)
-                for scalar in scalars:
-                    tally_labels[scalar] += concept_map['sh'] * concept_map['sw']
-                if pixels:
-                    pixels = np.concatenate(pixels)
-                    tally_label = np.bincount(pixels.ravel())
-                    if len(tally_label) > 0:
-                        tally_label[0] = 0
-                    tally_labels[:len(tally_label)] += tally_label
+                for concept_map in batch:
+                    count += 1
+                    img_index = concept_map['i']
+                    scalars, pixels = [], []
+                    for cat in data.category_names():
+                        label_group = concept_map[cat]
+                        shape = np.shape(label_group)
+                        if len(shape) % 2 == 0:
+                            label_group = [label_group]
+                        if len(shape) < 2:
+                            scalars += label_group
+                        else:
+                            pixels.append(label_group)
+                    for scalar in scalars:
+                        tally_labels[scalar] += concept_map['sh'] * concept_map['sw']
+                    if pixels:
+                        pixels = np.concatenate(pixels)
+                        tally_label = np.bincount(pixels.ravel())
+                        if len(tally_label) > 0:
+                            tally_label[0] = 0
+                        tally_labels[:len(tally_label)] += tally_label
 
-                for unit_id in range(units):
-                    feature_map = features[img_index][unit_id]
-                    if feature_map.max() > threshold[unit_id]:
-                        mask = imresize(feature_map, (concept_map['sh'], concept_map['sw']), mode='F')
-                        #reduction = int(round(settings.IMG_SIZE / float(concept_map['sh'])))
-                        #mask = upsample.upsampleL(fieldmap, feature_map, shape=(concept_map['sh'], concept_map['sw']), reduction=reduction)
-                        indexes = np.argwhere(mask > threshold[unit_id])
+                    for unit_id in range(units):
+                        feature_map = features[img_index][unit_id]
+                        if feature_map.max() > threshold[unit_id]:
+                            mask = imresize(feature_map, (concept_map['sh'], concept_map['sw']))
+                            #reduction = int(round(settings.IMG_SIZE / float(concept_map['sh'])))
+                            #mask = upsample.upsampleL(fieldmap, feature_map, shape=(concept_map['sh'], concept_map['sw']), reduction=reduction)
+                            indexes = np.argwhere(mask > threshold[unit_id])
 
-                        tally_units[unit_id] += len(indexes)
-                        if len(pixels) > 0:
-                            tally_bt = np.bincount(pixels[:, indexes[:, 0], indexes[:, 1]].ravel())
-                            if len(tally_bt) > 0:
-                                tally_bt[0] = 0
-                            tally_cat = np.dot(tally_bt[None,:], data.labelcat[:len(tally_bt), :])[0]
-                            tally_both[unit_id,:len(tally_bt)] += tally_bt
-                        for scalar in scalars:
-                            tally_cat += data.labelcat[scalar]
-                            tally_both[unit_id, scalar] += len(indexes)
-                        tally_units_cat[unit_id] += len(indexes) * (tally_cat > 0)
+                            tally_units[unit_id] += len(indexes)
+                            if len(pixels) > 0:
+                                tally_bt = np.bincount(pixels[:, indexes[:, 0], indexes[:, 1]].ravel())
+                                if len(tally_bt) > 0:
+                                    tally_bt[0] = 0
+                                tally_cat = np.dot(tally_bt[None,:], data.labelcat[:len(tally_bt), :])[0]
+                                tally_both[unit_id,:len(tally_bt)] += tally_bt
+                            for scalar in scalars:
+                                tally_cat += data.labelcat[scalar]
+                                tally_both[unit_id, scalar] += len(indexes)
+                            tally_units_cat[unit_id] += len(indexes) * (tally_cat > 0)
+
+        except StopIteration:
+            return
 
 
     def tally(self, features, threshold, savepath=''):
         csvpath = os.path.join(settings.OUTPUT_FOLDER, savepath)
         if savepath and os.path.exists(csvpath):
+            print("We load from existing!")
             return load_csv(csvpath)
 
         units = features.shape[1]
