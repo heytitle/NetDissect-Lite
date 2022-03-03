@@ -14,7 +14,7 @@ SEG_THRESHOLD = 0.04                        # the threshold used for visualizati
 SCORE_THRESHOLD = 0.04                      # the threshold used for IoU score (in HTML file)
 TOPN = 10                                   # to show top N image with highest activation for each unit
 PARALLEL = 1                                # how many process is used for tallying (Experiments show that 1 is the fastest)
-CATAGORIES = ["object", "part","scene","texture","color"] # concept categories that are chosen to detect: "object", "part", "scene", "material", "texture", "color"
+CATAGORIES = ["object", "part","scene", "material", "texture","color"] # concept categories that are chosen to detect: "object", "part", "scene", "material", "texture", "color"
 
 # Pat: This allows us to use the (fast) scatch file system on the clusters
 FEATURE_NAME = ["conv4_3", "conv5_3"][1]
@@ -100,11 +100,19 @@ elif MODEL == 'vgg16':
         NORMALIZATION_BGR_MEAN = [109.5388, 118.6897, 124.6901]
 
         # This is the unit of [0, 1] values (normaized pixel values)
-        NORMALIZATION_RGB_STD = [1., 1., 1.]
+        # Ref: https://github.com/CSAILVision/NetDissect-Lite/blob/2163454ebeb5b15aac64e5cbd4ed8876c5c200df/feature_operation.py#L63
+        NORMALIZATION_RGB_STD = np.array([1., 1., 1.])
+        # We divide by 255 here because we want to cancel out the / 255 normalization in
+        # https://github.com/CSAILVision/NetDissect-Lite/blob/2163454ebeb5b15aac64e5cbd4ed8876c5c200df/feature_operation.py#L63
+        # This is because the caffee models seems to be trained on input in [0, 255]
+        NORMALIZATION_RGB_STD = (NORMALIZATION_RGB_STD  / 255.).tolist()
+
         if DATASET == "imagenet":
             MODEL_FILE = "zoo/netdissect-vgg16_imagenet-2b51436b.pth"
         elif DATASET == "places365":
             MODEL_FILE = "zoo/netdissect-vgg16_places365-dab93d8c.pth"
+        else:
+            raise ValueError(f"We dont have {DATASET}!")
     else:
         raise ValueError(f"`{VENDOR}`` is not available.")
     FEATURE_NAMES = [FEATURE_NAME]
