@@ -3,8 +3,20 @@ import settings
 import torch
 import torchvision
 
-def get_vgg16(*args, **kwargs):
-    model = torchvision.models.vgg16(*args, **kwargs)
+def get_vgg16(model_file):
+    assert model_file is not None
+
+    model = torchvision.models.vgg16()
+    if settings.NUM_CLASSES != 1000:
+        # Here, model.classifer[6] is the last FC
+        model.classifier[6] = torch.nn.Linear(4096, settings.NUM_CLASSES)
+
+    print("Setting up model.classifer to")
+    print(model.classifier)
+
+    print(f"Loading VGG16 from {model_file}")
+    model.load_state_dict(torch.load(model_file))
+
     model.features = torch.nn.Sequential(
         collections.OrderedDict(
             zip(
@@ -62,7 +74,7 @@ def get_vgg16(*args, **kwargs):
 
 def loadmodel(hook_fn):
     if settings.MODEL == "vgg16":
-        model = get_vgg16(pretrained=True)
+        model = get_vgg16(model_file=settings.MODEL_FILE)
     elif settings.MODEL_FILE is None:
         model = torchvision.models.__dict__[settings.MODEL](pretrained=True)
     else:

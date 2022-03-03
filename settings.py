@@ -3,12 +3,12 @@ import numpy as np
 import json
 
 ######### global settings  #########
-GPU = True                                  # running on GPU is highly suggeste
+GPU = True                                  # running on GPU is highly suggested
 TEST_MODE = False                           # turning on the testmode means the code will run on a small dataset.
 CLEAN = True                               # set to "True" if you want to clean the temporary large files after generating result
 VENDOR = ["torchvision", "netdissect"][1]  # model vendor: {torchvision, netdissect}
 MODEL = 'vgg16'                            # model arch: resnet18, alexnet, resnet50, densenet161
-DATASET = ["imagenet", "place365"][1]                       # model trained on: places365 or imagenet
+DATASET = ["imagenet", "places365"][1]                       # model trained on: places365 or imagenet
 QUANTILE = 0.005                            # the threshold used for activation
 SEG_THRESHOLD = 0.04                        # the threshold used for visualization
 SCORE_THRESHOLD = 0.04                      # the threshold used for IoU score (in HTML file)
@@ -68,7 +68,7 @@ elif MODEL == 'resnet50':
 elif MODEL == 'vgg16':
     if VENDOR == "torchvision":
         # We use pretrained then
-        MODEL_FILE = "~/.cache/torch/hub/checkpoints/vgg16-397923af.pth"
+        MODEL_FILE = os.path.expanduser("~/.cache/torch/hub/checkpoints/vgg16-397923af.pth")
 
         # Remark: to keep minimal change, we follow their color formating
         # - The mean is in `Blue Green Red (BGR)` format.
@@ -103,7 +103,7 @@ elif MODEL == 'vgg16':
         NORMALIZATION_RGB_STD = [1., 1., 1.]
         if DATASET == "imagenet":
             MODEL_FILE = "zoo/netdissect-vgg16_imagenet-2b51436b.pth"
-        elif DATASET == "place365":
+        elif DATASET == "places365":
             MODEL_FILE = "zoo/netdissect-vgg16_places365-dab93d8c.pth"
     else:
         raise ValueError(f"`{VENDOR}`` is not available.")
