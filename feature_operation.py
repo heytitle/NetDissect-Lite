@@ -21,14 +21,14 @@ def hook_feature(module, input, output):
 
 
 class FeatureOperator:
-
     def __init__(self):
         if not os.path.exists(settings.OUTPUT_FOLDER):
             os.makedirs(os.path.join(settings.OUTPUT_FOLDER, 'image'))
         self.data = SegmentationData(settings.DATA_DIRECTORY, categories=settings.CATAGORIES)
         self.loader = SegmentationPrefetcher(self.data,categories=['image'],once=True,batch_size=settings.BATCH_SIZE)
-        self.mean = [109.5388,118.6897,124.6901]
+        self.mean = settings.NORMALIZATION_BGR_MEAN
 
+    @torch.no_grad()
     def feature_extraction(self, model=None, memmap=True):
         loader = self.loader
         # extract the max value activaiton for each image
@@ -57,13 +57,16 @@ class FeatureOperator:
                 return wholefeatures, maxfeatures
 
         num_batches = (len(loader.indexes) + loader.batch_size - 1) / loader.batch_size
+
+        std = torch.tensor(settings.NORMALIZATION_RGB_STD).view((1, 3, 1, 1))
         for batch_idx,batch in enumerate(loader.tensor_batches(bgr_mean=self.mean)):
             del features_blobs[:]
             input = batch[0]
             batch_size = len(input)
             print('extracting feature from batch %d / %d' % (batch_idx+1, num_batches))
             input = torch.from_numpy(input[:, ::-1, :, :].copy())
-            input.div_(255.0 * 0.224)
+
+            input.div_(255.0 * std)
             if settings.GPU:
                 input = input.cuda()
             input_var = V(input,volatile=True)
