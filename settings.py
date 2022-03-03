@@ -130,7 +130,7 @@ if TEST_MODE:
 else:
     WORKERS = 12
     BATCH_SIZE = 64
-    TALLY_BATCH_SIZE = 64
+    TALLY_BATCH_SIZE = 16
     TALLY_AHEAD = 4
     INDEX_FILE = 'index.csv'
 
