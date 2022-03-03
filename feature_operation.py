@@ -1,9 +1,7 @@
 
 import os
 from torch.autograd import Variable as V
-#from scipy.misc import imresize
 from skimage.transform import resize as imresize
-#from imageio import imresize
 
 import numpy as np
 import torch
